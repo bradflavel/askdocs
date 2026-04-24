@@ -14,7 +14,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import CurrentUser
@@ -95,7 +95,21 @@ async def upload_document(
     await session.commit()
     await session.refresh(doc)
 
-    final_path = move_to_final(tmp, user.id, doc.id, filename)
+    try:
+        final_path = move_to_final(tmp, user.id, doc.id, filename)
+    except OSError as e:
+        await session.execute(
+            update(Document)
+            .where(Document.id == doc.id)
+            .values(status="failed", error=f"storage error: {e}")
+        )
+        await session.commit()
+        tmp.unlink(missing_ok=True)
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="failed to persist uploaded file",
+        ) from e
+
     bg.add_task(process_document, doc.id, str(final_path))
     return UploadResponse(id=doc.id, status="pending", duplicate=False)
 
