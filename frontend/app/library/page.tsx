@@ -7,6 +7,7 @@ import {
   type DocumentOut,
   type DocumentStatus,
   clearToken,
+  createConversation,
   listDocuments,
   uploadDocument,
 } from "@/lib/api";
@@ -44,6 +45,16 @@ export default function LibraryPage() {
     const id = setInterval(refresh, 2000);
     return () => clearInterval(id);
   }, [docs, refresh]);
+
+  async function onChat(documentId: number) {
+    setError(null);
+    try {
+      const conv = await createConversation(documentId);
+      router.push(`/chat/${conv.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "failed to start chat");
+    }
+  }
 
   async function onUpload(e: React.FormEvent) {
     e.preventDefault();
@@ -102,7 +113,17 @@ export default function LibraryPage() {
               </div>
               {d.error && <div className="text-xs text-red-600">{d.error}</div>}
             </div>
-            <StatusBadge status={d.status} />
+            <div className="flex items-center gap-3">
+              <StatusBadge status={d.status} />
+              {d.status === "ready" && (
+                <button
+                  onClick={() => onChat(d.id)}
+                  className="rounded bg-neutral-900 px-3 py-1 text-xs text-white"
+                >
+                  chat
+                </button>
+              )}
+            </div>
           </li>
         ))}
         {docs.length === 0 && (
