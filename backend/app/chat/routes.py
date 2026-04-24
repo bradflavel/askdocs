@@ -17,7 +17,9 @@ from app.config import get_settings
 from app.conversations.routes import load_owned_conversation
 from app.db import get_session, session_scope
 from app.models import Chunk, Conversation, Message
+from app.retrieval.bm25 import search_bm25
 from app.retrieval.embed import embed_all
+from app.retrieval.fuse import rrf
 from app.retrieval.vector import search_vector
 
 log = logging.getLogger(__name__)
@@ -25,7 +27,7 @@ log = logging.getLogger(__name__)
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 CITATION_RE = re.compile(r"\[chunk:(\d+)\]")
-VECTOR_TOP_K = 20
+TOP_K_PER_RETRIEVER = 20
 CONTEXT_CHUNKS = 8
 HISTORY_MESSAGES = 6
 
@@ -74,8 +76,17 @@ async def chat(
                     for m in reversed(history_rows)
                 ]
 
-                top_ids = await search_vector(s, document_id, q_emb, k=VECTOR_TOP_K)
-                allowed_ids = top_ids[:CONTEXT_CHUNKS]
+                vec_ids = await search_vector(
+                    s, document_id, q_emb, k=TOP_K_PER_RETRIEVER
+                )
+                bm25_ids = await search_bm25(
+                    s, document_id, question, k=TOP_K_PER_RETRIEVER
+                )
+                ranked_lists = [vec_ids]
+                if bm25_ids:
+                    ranked_lists.append(bm25_ids)
+                fused = rrf(ranked_lists)
+                allowed_ids = [cid for cid, _ in fused[:CONTEXT_CHUNKS]]
                 if not allowed_ids:
                     yield _sse("error", {"detail": "no indexed chunks for this document"})
                     return
