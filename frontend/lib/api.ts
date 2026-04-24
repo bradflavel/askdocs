@@ -93,3 +93,54 @@ export async function uploadDocument(file: File): Promise<UploadResponse> {
   await throwIfBad(res, "upload");
   return res.json();
 }
+
+export type Conversation = {
+  id: number;
+  document_id: number;
+  title: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Message = {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  cited_chunk_ids: number[];
+  created_at: string;
+};
+
+export async function createConversation(documentId: number): Promise<Conversation> {
+  const res = await apiFetch("/conversations", {
+    method: "POST",
+    body: JSON.stringify({ document_id: documentId }),
+  });
+  await throwIfBad(res, "create conversation");
+  return res.json();
+}
+
+export async function listConversations(): Promise<Conversation[]> {
+  const res = await apiFetch("/conversations");
+  await throwIfBad(res, "list conversations");
+  return res.json();
+}
+
+export async function getMessages(conversationId: number): Promise<Message[]> {
+  const res = await apiFetch(`/conversations/${conversationId}/messages`);
+  await throwIfBad(res, "load messages");
+  return res.json();
+}
+
+export async function sendChat(
+  conversationId: number,
+  question: string,
+): Promise<Response> {
+  const res = await apiFetch("/chat", {
+    method: "POST",
+    body: JSON.stringify({ conversation_id: conversationId, question }),
+  });
+  if (!res.ok) {
+    await throwIfBad(res, "chat");
+  }
+  return res;
+}
