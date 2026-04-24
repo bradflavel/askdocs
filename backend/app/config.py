@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     openai_api_key: str = ""
     embedding_model: str = "text-embedding-3-small"
+    chat_model: str = "gpt-4o-mini"
 
     storage_dir: str = "./storage"
     max_upload_bytes: int = 50 * 1024 * 1024
