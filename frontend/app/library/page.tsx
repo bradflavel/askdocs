@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Skeleton } from "@/components/skeleton";
+import { useToast } from "@/components/toast";
 import { UploadZone } from "@/components/upload-zone";
 import {
   type DocumentOut,
@@ -16,9 +17,9 @@ import {
 
 export default function LibraryPage() {
   const router = useRouter();
+  const toast = useToast();
   const [docs, setDocs] = useState<DocumentOut[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const noChangeCountRef = useRef(0);
@@ -44,10 +45,13 @@ export default function LibraryPage() {
       prevTerminalIdsRef.current = terminalNow;
       setDocs(list);
       setLoaded(true);
-    } catch {
-      signOut();
+    } catch (err) {
+      // 401s are handled centrally by AuthBouncer; surface anything else.
+      toast.error(
+        err instanceof Error ? err.message : "Failed to load documents",
+      );
     }
-  }, [signOut]);
+  }, [toast]);
 
   useEffect(() => {
     refresh();
@@ -104,18 +108,16 @@ export default function LibraryPage() {
   }, [docs, refresh]);
 
   async function onChat(documentId: number) {
-    setError(null);
     try {
       const conv = await createConversation(documentId);
       router.push(`/chat/${conv.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "failed to start chat");
+      toast.error(err instanceof Error ? err.message : "Failed to start chat");
     }
   }
 
   async function handleFile(file: File) {
     setUploading(true);
-    setError(null);
     setProgress(0);
     try {
       await uploadDocument(file, (loaded, total) => {
@@ -123,7 +125,7 @@ export default function LibraryPage() {
       });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "upload failed");
+      toast.error(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
       setProgress(null);
@@ -146,7 +148,6 @@ export default function LibraryPage() {
           busy={uploading}
         />
       </div>
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
       {!loaded ? (
         <ul className="space-y-2">

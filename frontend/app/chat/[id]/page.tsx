@@ -8,6 +8,7 @@ import { CitationPill } from "@/components/citation-pill";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Skeleton } from "@/components/skeleton";
 import { SourcePanel } from "@/components/source-panel";
+import { useToast } from "@/components/toast";
 import {
   type Conversation,
   type Message,
@@ -24,6 +25,7 @@ import { streamSSE } from "@/lib/sse";
 export default function ChatPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const toast = useToast();
   const conversationId = Number(params.id);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -56,7 +58,7 @@ export default function ChatPage() {
       await renameConversation(id, next);
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "rename failed");
+      toast.error(err instanceof Error ? err.message : "Rename failed");
     }
   }
 
@@ -80,7 +82,7 @@ export default function ChatPage() {
         await loadData();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "delete failed");
+      toast.error(err instanceof Error ? err.message : "Delete failed");
     }
   }
 
@@ -93,10 +95,13 @@ export default function ChatPage() {
       setConversations(convs);
       setMessages(msgs);
       setLoaded(true);
-    } catch {
-      signOut();
+    } catch (err) {
+      // 401s are handled centrally by AuthBouncer; surface anything else.
+      toast.error(
+        err instanceof Error ? err.message : "Failed to load conversation",
+      );
     }
-  }, [conversationId, signOut]);
+  }, [conversationId, toast]);
 
   useEffect(() => {
     // Reset transient view state synchronously on conversation switch so

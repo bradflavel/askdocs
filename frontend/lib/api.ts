@@ -51,8 +51,15 @@ export type UploadResponse = {
   duplicate: boolean;
 };
 
+function notifyUnauthenticated(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("askdocs:unauthenticated"));
+  }
+}
+
 async function throwIfBad(res: Response, label: string): Promise<void> {
   if (res.ok) return;
+  if (res.status === 401) notifyUnauthenticated();
   let detail = `${label} failed (${res.status})`;
   try {
     const body = await res.json();
@@ -112,6 +119,7 @@ export async function uploadDocument(
         }
         return;
       }
+      if (xhr.status === 401) notifyUnauthenticated();
       let detail = `upload failed (${xhr.status})`;
       try {
         const body = JSON.parse(xhr.responseText);
