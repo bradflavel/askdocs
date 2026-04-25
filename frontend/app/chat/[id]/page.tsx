@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 import { CitationPill } from "@/components/citation-pill";
+import { SourcePanel } from "@/components/source-panel";
 import {
   type Conversation,
   type Message,
@@ -27,6 +28,7 @@ export default function ChatPage() {
   const [streaming, setStreaming] = useState(false);
   const [streamedAnswer, setStreamedAnswer] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [selectedChunkId, setSelectedChunkId] = useState<number | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const signOut = useCallback(() => {
@@ -35,8 +37,7 @@ export default function ChatPage() {
   }, [router]);
 
   const onCitationClick = useCallback((chunkId: number) => {
-    // Source panel hookup arrives in the next commit.
-    console.log("citation clicked:", chunkId);
+    setSelectedChunkId(chunkId);
   }, []);
 
   const loadData = useCallback(async () => {
@@ -186,6 +187,11 @@ export default function ChatPage() {
           </div>
         </form>
       </section>
+
+      <SourcePanel
+        chunkId={selectedChunkId}
+        onClose={() => setSelectedChunkId(null)}
+      />
     </main>
   );
 }

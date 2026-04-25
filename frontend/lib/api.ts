@@ -144,3 +144,18 @@ export async function sendChat(
   }
   return res;
 }
+
+export type ChunkContent = {
+  id: number;
+  document_id: number;
+  chunk_index: number;
+  content: string;
+  page_start: number | null;
+  page_end: number | null;
+};
+
+export async function getChunk(chunkId: number): Promise<ChunkContent> {
+  const res = await apiFetch(`/chunks/${chunkId}`);
+  await throwIfBad(res, "load chunk");
+  return res.json();
+}
