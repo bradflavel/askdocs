@@ -9,6 +9,7 @@ from app.conversations.schemas import (
     ConversationOut,
     CreateConversationRequest,
     MessageOut,
+    RenameConversationRequest,
 )
 from app.db import get_session
 from app.models import Conversation, Document, Message
@@ -75,3 +76,34 @@ async def get_messages(
         .order_by(Message.created_at.asc(), Message.id.asc())
     )
     return [MessageOut.model_validate(m) for m in result.scalars()]
+
+
+@router.patch("/{conversation_id}", response_model=ConversationOut)
+async def rename_conversation(
+    conversation_id: int,
+    body: RenameConversationRequest,
+    user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> ConversationOut:
+    conv = await load_owned_conversation(session, conversation_id, user.id)
+    title = body.title.strip()
+    if not title:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST, detail="title cannot be empty"
+        )
+    conv.title = title
+    await session.commit()
+    await session.refresh(conv)
+    return ConversationOut.model_validate(conv)
+
+
+@router.delete("/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_conversation(
+    conversation_id: int,
+    user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> None:
+    conv = await load_owned_conversation(session, conversation_id, user.id)
+    await session.delete(conv)
+    await session.commit()
+    return None

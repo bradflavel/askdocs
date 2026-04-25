@@ -18,6 +18,10 @@ class CreateConversationRequest(BaseModel):
     title: str | None = None
 
 
+class RenameConversationRequest(BaseModel):
+    title: str
+
+
 class MessageOut(BaseModel):
     id: int
     role: str

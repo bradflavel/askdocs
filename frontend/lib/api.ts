@@ -51,8 +51,15 @@ export type UploadResponse = {
   duplicate: boolean;
 };
 
+function notifyUnauthenticated(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("askdocs:unauthenticated"));
+  }
+}
+
 async function throwIfBad(res: Response, label: string): Promise<void> {
   if (res.ok) return;
+  if (res.status === 401) notifyUnauthenticated();
   let detail = `${label} failed (${res.status})`;
   try {
     const body = await res.json();
@@ -86,12 +93,46 @@ export async function listDocuments(): Promise<DocumentOut[]> {
   return res.json();
 }
 
-export async function uploadDocument(file: File): Promise<UploadResponse> {
+export async function uploadDocument(
+  file: File,
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<UploadResponse> {
   const fd = new FormData();
   fd.append("file", file);
-  const res = await apiFetch("/documents", { method: "POST", body: fd });
-  await throwIfBad(res, "upload");
-  return res.json();
+  return new Promise<UploadResponse>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_URL}/documents`);
+    const token =
+      typeof window !== "undefined" ? window.localStorage.getItem(TOKEN_KEY) : null;
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(e.loaded, e.total);
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          reject(new Error("upload: invalid response"));
+        }
+        return;
+      }
+      if (xhr.status === 401) notifyUnauthenticated();
+      let detail = `upload failed (${xhr.status})`;
+      try {
+        const body = JSON.parse(xhr.responseText);
+        if (body?.detail) detail = `upload: ${body.detail}`;
+      } catch {
+        // keep default
+      }
+      reject(new Error(detail));
+    };
+
+    xhr.onerror = () => reject(new Error("upload network error"));
+    xhr.send(fd);
+  });
 }
 
 export type Conversation = {
@@ -123,6 +164,25 @@ export async function listConversations(): Promise<Conversation[]> {
   const res = await apiFetch("/conversations");
   await throwIfBad(res, "list conversations");
   return res.json();
+}
+
+export async function renameConversation(
+  conversationId: number,
+  title: string,
+): Promise<Conversation> {
+  const res = await apiFetch(`/conversations/${conversationId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
+  await throwIfBad(res, "rename conversation");
+  return res.json();
+}
+
+export async function deleteConversation(conversationId: number): Promise<void> {
+  const res = await apiFetch(`/conversations/${conversationId}`, {
+    method: "DELETE",
+  });
+  await throwIfBad(res, "delete conversation");
 }
 
 export async function getMessages(conversationId: number): Promise<Message[]> {

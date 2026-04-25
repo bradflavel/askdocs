@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { Skeleton } from "@/components/skeleton";
 import { type ChunkContent, getChunk } from "@/lib/api";
 
 type Props = {
@@ -57,7 +58,15 @@ export function SourcePanel({ chunkId, onClose }: Props) {
           Click a citation in an answer to see the source passage.
         </p>
       )}
-      {loading && <p className="text-sm text-neutral-500">Loading…</p>}
+      {loading && (
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-32" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+      )}
       {error && (
         <p className="rounded border border-red-300 bg-red-50 p-2 text-sm text-red-700">
           {error}

@@ -3,6 +3,9 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Skeleton } from "@/components/skeleton";
+import { useToast } from "@/components/toast";
+import { UploadZone } from "@/components/upload-zone";
 import {
   type DocumentOut,
   type DocumentStatus,
@@ -14,10 +17,13 @@ import {
 
 export default function LibraryPage() {
   const router = useRouter();
+  const toast = useToast();
   const [docs, setDocs] = useState<DocumentOut[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState<number | null>(null);
+  const noChangeCountRef = useRef(0);
+  const prevTerminalIdsRef = useRef<Set<number>>(new Set());
 
   const signOut = useCallback(() => {
     clearToken();
@@ -27,11 +33,25 @@ export default function LibraryPage() {
   const refresh = useCallback(async () => {
     try {
       const list = await listDocuments();
+      const terminalNow = new Set(
+        list
+          .filter((d) => d.status === "ready" || d.status === "failed")
+          .map((d) => d.id),
+      );
+      const transitioned = [...terminalNow].some(
+        (id) => !prevTerminalIdsRef.current.has(id),
+      );
+      noChangeCountRef.current = transitioned ? 0 : noChangeCountRef.current + 1;
+      prevTerminalIdsRef.current = terminalNow;
       setDocs(list);
-    } catch {
-      signOut();
+      setLoaded(true);
+    } catch (err) {
+      // 401s are handled centrally by AuthBouncer; surface anything else.
+      toast.error(
+        err instanceof Error ? err.message : "Failed to load documents",
+      );
     }
-  }, [signOut]);
+  }, [toast]);
 
   useEffect(() => {
     refresh();
@@ -42,34 +62,73 @@ export default function LibraryPage() {
       (d) => d.status === "pending" || d.status === "processing",
     );
     if (!hasNonTerminal) return;
-    const id = setInterval(refresh, 2000);
-    return () => clearInterval(id);
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const intervalMs = () => {
+      const c = noChangeCountRef.current;
+      if (c >= 6) return 10000;
+      if (c >= 3) return 5000;
+      return 2000;
+    };
+
+    const schedule = () => {
+      if (cancelled) return;
+      if (document.visibilityState === "hidden") {
+        timer = null;
+        return;
+      }
+      timer = setTimeout(() => {
+        timer = null;
+        if (cancelled) return;
+        void refresh();
+      }, intervalMs());
+    };
+
+    const onVisibilityChange = () => {
+      if (cancelled) return;
+      if (document.visibilityState === "visible") {
+        noChangeCountRef.current = 0;
+        if (timer === null) void refresh();
+      } else if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    schedule();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      if (timer !== null) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [docs, refresh]);
 
   async function onChat(documentId: number) {
-    setError(null);
     try {
       const conv = await createConversation(documentId);
       router.push(`/chat/${conv.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "failed to start chat");
+      toast.error(err instanceof Error ? err.message : "Failed to start chat");
     }
   }
 
-  async function onUpload(e: React.FormEvent) {
-    e.preventDefault();
-    const file = fileRef.current?.files?.[0];
-    if (!file) return;
+  async function handleFile(file: File) {
     setUploading(true);
-    setError(null);
+    setProgress(0);
     try {
-      await uploadDocument(file);
-      if (fileRef.current) fileRef.current.value = "";
+      await uploadDocument(file, (loaded, total) => {
+        setProgress(Math.round((loaded / total) * 100));
+      });
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "upload failed");
+      toast.error(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
+      setProgress(null);
     }
   }
 
@@ -82,54 +141,70 @@ export default function LibraryPage() {
         </button>
       </header>
 
-      <form onSubmit={onUpload} className="mb-8 flex gap-3">
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".pdf,.docx"
-          className="flex-1 rounded border border-neutral-300 bg-white px-3 py-2"
+      <div className="mb-8">
+        <UploadZone
+          onFile={handleFile}
+          progress={uploading ? progress : null}
+          busy={uploading}
         />
-        <button
-          type="submit"
-          disabled={uploading}
-          className="rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-50"
-        >
-          {uploading ? "uploading..." : "upload"}
-        </button>
-      </form>
-      {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
+      </div>
 
-      <ul className="space-y-2">
-        {docs.map((d) => (
-          <li
-            key={d.id}
-            className="flex items-center justify-between rounded border border-neutral-200 bg-white px-4 py-3"
-          >
-            <div>
-              <div className="font-medium">{d.filename}</div>
-              <div className="text-xs text-neutral-500">
-                {d.page_count ?? "?"} pages · uploaded{" "}
-                {new Date(d.uploaded_at).toLocaleString()}
+      {!loaded ? (
+        <ul className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <li
+              key={i}
+              className="flex items-center justify-between rounded border border-neutral-200 bg-white px-4 py-3"
+            >
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-32" />
               </div>
-              {d.error && <div className="text-xs text-red-600">{d.error}</div>}
-            </div>
-            <div className="flex items-center gap-3">
-              <StatusBadge status={d.status} />
-              {d.status === "ready" && (
-                <button
-                  onClick={() => onChat(d.id)}
-                  className="rounded bg-neutral-900 px-3 py-1 text-xs text-white"
-                >
-                  chat
-                </button>
-              )}
-            </div>
-          </li>
-        ))}
-        {docs.length === 0 && (
-          <li className="text-sm text-neutral-500">No documents yet. Upload one above.</li>
-        )}
-      </ul>
+              <Skeleton className="h-5 w-16" />
+            </li>
+          ))}
+        </ul>
+      ) : docs.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-12 text-center">
+          <p className="text-sm font-medium text-neutral-700">
+            No documents yet
+          </p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Drop a PDF or DOCX above to start asking questions about it.
+          </p>
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {docs.map((d) => (
+            <li
+              key={d.id}
+              className="flex items-center justify-between rounded border border-neutral-200 bg-white px-4 py-3"
+            >
+              <div>
+                <div className="font-medium">{d.filename}</div>
+                <div className="text-xs text-neutral-500">
+                  {d.page_count ?? "?"} pages · uploaded{" "}
+                  {new Date(d.uploaded_at).toLocaleString()}
+                </div>
+                {d.error && (
+                  <div className="text-xs text-red-600">{d.error}</div>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <StatusBadge status={d.status} />
+                {d.status === "ready" && (
+                  <button
+                    onClick={() => onChat(d.id)}
+                    className="rounded bg-neutral-900 px-3 py-1 text-xs text-white"
+                  >
+                    chat
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </main>
   );
 }
