@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Skeleton } from "@/components/skeleton";
 import { UploadZone } from "@/components/upload-zone";
 import {
   type DocumentOut,
@@ -16,6 +17,7 @@ import {
 export default function LibraryPage() {
   const router = useRouter();
   const [docs, setDocs] = useState<DocumentOut[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
@@ -41,6 +43,7 @@ export default function LibraryPage() {
       noChangeCountRef.current = transitioned ? 0 : noChangeCountRef.current + 1;
       prevTerminalIdsRef.current = terminalNow;
       setDocs(list);
+      setLoaded(true);
     } catch {
       signOut();
     }
@@ -145,37 +148,62 @@ export default function LibraryPage() {
       </div>
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
-      <ul className="space-y-2">
-        {docs.map((d) => (
-          <li
-            key={d.id}
-            className="flex items-center justify-between rounded border border-neutral-200 bg-white px-4 py-3"
-          >
-            <div>
-              <div className="font-medium">{d.filename}</div>
-              <div className="text-xs text-neutral-500">
-                {d.page_count ?? "?"} pages · uploaded{" "}
-                {new Date(d.uploaded_at).toLocaleString()}
+      {!loaded ? (
+        <ul className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <li
+              key={i}
+              className="flex items-center justify-between rounded border border-neutral-200 bg-white px-4 py-3"
+            >
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-32" />
               </div>
-              {d.error && <div className="text-xs text-red-600">{d.error}</div>}
-            </div>
-            <div className="flex items-center gap-3">
-              <StatusBadge status={d.status} />
-              {d.status === "ready" && (
-                <button
-                  onClick={() => onChat(d.id)}
-                  className="rounded bg-neutral-900 px-3 py-1 text-xs text-white"
-                >
-                  chat
-                </button>
-              )}
-            </div>
-          </li>
-        ))}
-        {docs.length === 0 && (
-          <li className="text-sm text-neutral-500">No documents yet. Upload one above.</li>
-        )}
-      </ul>
+              <Skeleton className="h-5 w-16" />
+            </li>
+          ))}
+        </ul>
+      ) : docs.length === 0 ? (
+        <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-12 text-center">
+          <p className="text-sm font-medium text-neutral-700">
+            No documents yet
+          </p>
+          <p className="mt-1 text-xs text-neutral-500">
+            Drop a PDF or DOCX above to start asking questions about it.
+          </p>
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {docs.map((d) => (
+            <li
+              key={d.id}
+              className="flex items-center justify-between rounded border border-neutral-200 bg-white px-4 py-3"
+            >
+              <div>
+                <div className="font-medium">{d.filename}</div>
+                <div className="text-xs text-neutral-500">
+                  {d.page_count ?? "?"} pages · uploaded{" "}
+                  {new Date(d.uploaded_at).toLocaleString()}
+                </div>
+                {d.error && (
+                  <div className="text-xs text-red-600">{d.error}</div>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <StatusBadge status={d.status} />
+                {d.status === "ready" && (
+                  <button
+                    onClick={() => onChat(d.id)}
+                    className="rounded bg-neutral-900 px-3 py-1 text-xs text-white"
+                  >
+                    chat
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
     </main>
   );
 }

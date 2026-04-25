@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 
 import { CitationPill } from "@/components/citation-pill";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { Skeleton } from "@/components/skeleton";
 import { SourcePanel } from "@/components/source-panel";
 import {
   type Conversation,
@@ -27,6 +28,7 @@ export default function ChatPage() {
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loaded, setLoaded] = useState(false);
   const [question, setQuestion] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [streamedAnswer, setStreamedAnswer] = useState("");
@@ -90,6 +92,7 @@ export default function ChatPage() {
       ]);
       setConversations(convs);
       setMessages(msgs);
+      setLoaded(true);
     } catch {
       signOut();
     }
@@ -103,6 +106,7 @@ export default function ChatPage() {
     setStreamedAnswer("");
     setError(null);
     setSelectedChunkId(null);
+    setLoaded(false);
     loadData();
   }, [conversationId, loadData]);
 
@@ -164,7 +168,14 @@ export default function ChatPage() {
           </button>
         </div>
         <ul className="flex-1 space-y-1 overflow-y-auto">
-          {conversations.map((c) => {
+          {!loaded &&
+            Array.from({ length: 3 }).map((_, i) => (
+              <li key={`sk-${i}`} className="px-2 py-2">
+                <Skeleton className="h-4 w-full" />
+              </li>
+            ))}
+          {loaded &&
+            conversations.map((c) => {
             const isActive = c.id === conversationId;
             const isEditing = editingId === c.id;
             return (
@@ -220,7 +231,7 @@ export default function ChatPage() {
               </li>
             );
           })}
-          {conversations.length === 0 && (
+          {loaded && conversations.length === 0 && (
             <li className="text-xs text-neutral-500">No conversations yet.</li>
           )}
         </ul>
@@ -231,15 +242,30 @@ export default function ChatPage() {
 
       <section className="flex flex-1 flex-col">
         <div ref={transcriptRef} className="flex-1 space-y-4 overflow-y-auto p-6">
-          {messages.map((m, i) => (
-            <MessageBubble
-              key={`${m.id}-${i}`}
-              role={m.role}
-              content={m.content}
-              citedChunkIds={m.cited_chunk_ids}
-              onCitationClick={onCitationClick}
-            />
-          ))}
+          {!loaded && (
+            <>
+              <div className="ml-auto max-w-2xl space-y-2 rounded-lg bg-neutral-200 px-4 py-3">
+                <Skeleton className="h-3 w-32 bg-neutral-300" />
+                <Skeleton className="h-4 w-64 bg-neutral-300" />
+              </div>
+              <div className="max-w-2xl space-y-2 rounded-lg border border-neutral-200 bg-white px-4 py-3">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </>
+          )}
+          {loaded &&
+            messages.map((m, i) => (
+              <MessageBubble
+                key={`${m.id}-${i}`}
+                role={m.role}
+                content={m.content}
+                citedChunkIds={m.cited_chunk_ids}
+                onCitationClick={onCitationClick}
+              />
+            ))}
           {streaming && streamedAnswer && (
             <MessageBubble
               role="assistant"
@@ -252,9 +278,14 @@ export default function ChatPage() {
               {error}
             </div>
           )}
-          {messages.length === 0 && !streaming && (
-            <div className="text-sm text-neutral-500">
-              Ask a question about this document to get started.
+          {loaded && messages.length === 0 && !streaming && (
+            <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-12 text-center">
+              <p className="text-sm font-medium text-neutral-700">
+                Ready when you are
+              </p>
+              <p className="mt-1 text-xs text-neutral-500">
+                Ask a question about this document to get started.
+              </p>
             </div>
           )}
         </div>
