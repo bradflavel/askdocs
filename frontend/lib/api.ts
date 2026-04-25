@@ -125,6 +125,25 @@ export async function listConversations(): Promise<Conversation[]> {
   return res.json();
 }
 
+export async function renameConversation(
+  conversationId: number,
+  title: string,
+): Promise<Conversation> {
+  const res = await apiFetch(`/conversations/${conversationId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ title }),
+  });
+  await throwIfBad(res, "rename conversation");
+  return res.json();
+}
+
+export async function deleteConversation(conversationId: number): Promise<void> {
+  const res = await apiFetch(`/conversations/${conversationId}`, {
+    method: "DELETE",
+  });
+  await throwIfBad(res, "delete conversation");
+}
+
 export async function getMessages(conversationId: number): Promise<Message[]> {
   const res = await apiFetch(`/conversations/${conversationId}/messages`);
   await throwIfBad(res, "load messages");

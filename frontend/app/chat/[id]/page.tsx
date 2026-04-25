@@ -5,13 +5,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
 import { CitationPill } from "@/components/citation-pill";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { SourcePanel } from "@/components/source-panel";
 import {
   type Conversation,
   type Message,
   clearToken,
+  deleteConversation,
   getMessages,
   listConversations,
+  renameConversation,
   sendChat,
 } from "@/lib/api";
 import { remarkCitations } from "@/lib/citation-remark";
@@ -29,6 +32,9 @@ export default function ChatPage() {
   const [streamedAnswer, setStreamedAnswer] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [selectedChunkId, setSelectedChunkId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
+  const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const signOut = useCallback(() => {
@@ -39,6 +45,34 @@ export default function ChatPage() {
   const onCitationClick = useCallback((chunkId: number) => {
     setSelectedChunkId(chunkId);
   }, []);
+
+  async function saveRename(id: number) {
+    const next = editingTitle.trim();
+    setEditingId(null);
+    if (!next) return;
+    try {
+      await renameConversation(id, next);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "rename failed");
+    }
+  }
+
+  async function confirmDelete() {
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    if (id === null) return;
+    try {
+      await deleteConversation(id);
+      if (id === conversationId) {
+        router.push("/library");
+      } else {
+        await loadData();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "delete failed");
+    }
+  }
 
   const loadData = useCallback(async () => {
     try {
@@ -115,20 +149,62 @@ export default function ChatPage() {
           </button>
         </div>
         <ul className="flex-1 space-y-1 overflow-y-auto">
-          {conversations.map((c) => (
-            <li key={c.id}>
-              <button
-                onClick={() => router.push(`/chat/${c.id}`)}
-                className={`w-full truncate rounded px-2 py-2 text-left text-sm ${
-                  c.id === conversationId
-                    ? "bg-neutral-900 text-white"
-                    : "hover:bg-neutral-100"
-                }`}
-              >
-                {c.title ?? `Conversation ${c.id}`}
-              </button>
-            </li>
-          ))}
+          {conversations.map((c) => {
+            const isActive = c.id === conversationId;
+            const isEditing = editingId === c.id;
+            return (
+              <li key={c.id} className="group relative">
+                {isEditing ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    onBlur={() => void saveRename(c.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void saveRename(c.id);
+                      else if (e.key === "Escape") setEditingId(null);
+                    }}
+                    className="w-full rounded border border-neutral-400 bg-white px-2 py-2 text-sm"
+                  />
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => router.push(`/chat/${c.id}`)}
+                      className={`flex-1 truncate rounded px-2 py-2 text-left text-sm ${
+                        isActive
+                          ? "bg-neutral-900 text-white"
+                          : "hover:bg-neutral-100"
+                      }`}
+                    >
+                      {c.title ?? `Conversation ${c.id}`}
+                    </button>
+                    <div className="flex opacity-0 transition-opacity group-hover:opacity-100">
+                      <button
+                        type="button"
+                        title="Rename"
+                        onClick={() => {
+                          setEditingId(c.id);
+                          setEditingTitle(c.title ?? "");
+                        }}
+                        className="rounded px-1 py-1 text-xs text-neutral-500 hover:text-neutral-900"
+                      >
+                        ✎
+                      </button>
+                      <button
+                        type="button"
+                        title="Delete"
+                        onClick={() => setPendingDeleteId(c.id)}
+                        className="rounded px-1 py-1 text-xs text-neutral-500 hover:text-red-600"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </li>
+            );
+          })}
           {conversations.length === 0 && (
             <li className="text-xs text-neutral-500">No conversations yet.</li>
           )}
@@ -191,6 +267,16 @@ export default function ChatPage() {
       <SourcePanel
         chunkId={selectedChunkId}
         onClose={() => setSelectedChunkId(null)}
+      />
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete this conversation?"
+        body="This will permanently remove the conversation and all its messages."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setPendingDeleteId(null)}
       />
     </main>
   );
