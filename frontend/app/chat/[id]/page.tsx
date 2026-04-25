@@ -2,7 +2,10 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
 
+import { CitationPill } from "@/components/citation-pill";
+import { SourcePanel } from "@/components/source-panel";
 import {
   type Conversation,
   type Message,
@@ -11,6 +14,7 @@ import {
   listConversations,
   sendChat,
 } from "@/lib/api";
+import { remarkCitations } from "@/lib/citation-remark";
 import { streamSSE } from "@/lib/sse";
 
 export default function ChatPage() {
@@ -24,12 +28,17 @@ export default function ChatPage() {
   const [streaming, setStreaming] = useState(false);
   const [streamedAnswer, setStreamedAnswer] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [selectedChunkId, setSelectedChunkId] = useState<number | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const signOut = useCallback(() => {
     clearToken();
     router.push("/login");
   }, [router]);
+
+  const onCitationClick = useCallback((chunkId: number) => {
+    setSelectedChunkId(chunkId);
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -132,10 +141,20 @@ export default function ChatPage() {
       <section className="flex flex-1 flex-col">
         <div ref={transcriptRef} className="flex-1 space-y-4 overflow-y-auto p-6">
           {messages.map((m, i) => (
-            <MessageBubble key={`${m.id}-${i}`} role={m.role} content={m.content} />
+            <MessageBubble
+              key={`${m.id}-${i}`}
+              role={m.role}
+              content={m.content}
+              citedChunkIds={m.cited_chunk_ids}
+              onCitationClick={onCitationClick}
+            />
           ))}
           {streaming && streamedAnswer && (
-            <MessageBubble role="assistant" content={streamedAnswer} />
+            <MessageBubble
+              role="assistant"
+              content={streamedAnswer}
+              onCitationClick={onCitationClick}
+            />
           )}
           {error && (
             <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
@@ -168,6 +187,11 @@ export default function ChatPage() {
           </div>
         </form>
       </section>
+
+      <SourcePanel
+        chunkId={selectedChunkId}
+        onClose={() => setSelectedChunkId(null)}
+      />
     </main>
   );
 }
@@ -175,10 +199,15 @@ export default function ChatPage() {
 function MessageBubble({
   role,
   content,
+  citedChunkIds = [],
+  onCitationClick,
 }: {
   role: "user" | "assistant";
   content: string;
+  citedChunkIds?: number[];
+  onCitationClick?: (chunkId: number) => void;
 }) {
+  const allowed = new Set(citedChunkIds);
   return (
     <div
       className={`max-w-2xl rounded-lg px-4 py-3 ${
@@ -190,7 +219,30 @@ function MessageBubble({
       <div className="mb-1 text-[10px] uppercase tracking-wide opacity-60">
         {role}
       </div>
-      <div className="whitespace-pre-wrap">{content}</div>
+      {role === "assistant" ? (
+        <div className="space-y-2 text-sm leading-relaxed">
+          <ReactMarkdown
+            remarkPlugins={[remarkCitations(allowed)]}
+            components={{
+              a: ({ href, children, ...rest }) => {
+                if (href?.startsWith("#chunk-") && onCitationClick) {
+                  const id = Number(href.slice("#chunk-".length));
+                  return <CitationPill chunkId={id} onSelect={onCitationClick} />;
+                }
+                return (
+                  <a href={href} {...rest}>
+                    {children}
+                  </a>
+                );
+              },
+            }}
+          >
+            {content}
+          </ReactMarkdown>
+        </div>
+      ) : (
+        <div className="whitespace-pre-wrap">{content}</div>
+      )}
     </div>
   );
 }

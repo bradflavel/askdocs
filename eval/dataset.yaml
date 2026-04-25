@@ -1,0 +1,142 @@
+document: fixtures/paper.pdf
+questions:
+  - q: "What does BERT stand for?"
+    expected_answer: "Bidirectional Encoder Representations from Transformers"
+    gold_evidence:
+      - "Bidirectional Encoder Representations from Transformers"
+
+  - q: "What are BERT's two pre-training objectives?"
+    expected_answer: "Masked language model and next sentence prediction"
+    gold_evidence:
+      - "masked language model"
+      - "next sentence prediction"
+
+  - q: "How many parameters does BERT-BASE have?"
+    expected_answer: "110M parameters"
+    gold_evidence:
+      - "110M"
+
+  - q: "How many parameters does BERT-LARGE have?"
+    expected_answer: "340M parameters"
+    gold_evidence:
+      - "340M"
+
+  - q: "What percentage of WordPiece tokens are masked during pre-training?"
+    expected_answer: "15%"
+    gold_evidence:
+      - "15%"
+      - "mask 15%"
+
+  - q: "Of the masked tokens, what fraction are replaced with the [MASK] token?"
+    expected_answer: "80%"
+    gold_evidence:
+      - "80% of the time"
+      - "80%"
+
+  - q: "Of the masked tokens, what fraction are replaced with a random token?"
+    expected_answer: "10%"
+    gold_evidence:
+      - "random token"
+      - "10%"
+
+  - q: "What vocabulary size does BERT use?"
+    expected_answer: "30,000 tokens"
+    gold_evidence:
+      - "30,000"
+
+  - q: "What tokenization scheme does BERT use?"
+    expected_answer: "WordPiece"
+    gold_evidence:
+      - "WordPiece"
+
+  - q: "What corpora were used to pre-train BERT?"
+    expected_answer: "BooksCorpus and English Wikipedia"
+    gold_evidence:
+      - "BooksCorpus"
+      - "Wikipedia"
+
+  - q: "How many training steps was BERT pre-trained for?"
+    expected_answer: "1,000,000 steps"
+    gold_evidence:
+      - "1,000,000 steps"
+      - "40 epochs"
+
+  - q: "What batch size was used during pre-training?"
+    expected_answer: "256 sequences"
+    gold_evidence:
+      - "batch size of 256"
+      - "256 sequences"
+
+  - q: "What F1 score did BERT-LARGE achieve on SQuAD v1.1?"
+    expected_answer: "93.2"
+    gold_evidence:
+      - "93.2"
+
+  - q: "What F1 score did BERT-LARGE achieve on SQuAD v2.0?"
+    expected_answer: "83.1"
+    gold_evidence:
+      - "83.1"
+
+  - q: "What accuracy did BERT achieve on SWAG?"
+    expected_answer: "86.3"
+    gold_evidence:
+      - "86.3"
+      - "SWAG"
+
+  - q: "What optimizer was used for pre-training?"
+    expected_answer: "Adam"
+    gold_evidence:
+      - "Adam"
+
+  - q: "What learning rate was used for pre-training?"
+    expected_answer: "1e-4"
+    gold_evidence:
+      - "1e-4"
+
+  - q: "How many Transformer layers does BERT-LARGE have?"
+    expected_answer: "24"
+    gold_evidence:
+      - "L=24"
+      - "24 layers"
+
+  - q: "What is the hidden size of BERT-BASE?"
+    expected_answer: "768"
+    gold_evidence:
+      - "H=768"
+      - "768"
+
+  - q: "What is the hidden size of BERT-LARGE?"
+    expected_answer: "1024"
+    gold_evidence:
+      - "H=1024"
+      - "1024"
+
+  - q: "How many self-attention heads does BERT-LARGE use?"
+    expected_answer: "16"
+    gold_evidence:
+      - "A=16"
+      - "16 heads"
+
+  - q: "What base architecture does BERT build on?"
+    expected_answer: "Multi-layer bidirectional Transformer encoder"
+    gold_evidence:
+      - "multi-layer bidirectional Transformer"
+      - "Transformer"
+
+  - q: "What is the Next Sentence Prediction task?"
+    expected_answer: "Binary classification deciding whether sentence B follows sentence A"
+    gold_evidence:
+      - "IsNext"
+      - "next sentence"
+
+  - q: "What average GLUE score did BERT-LARGE achieve?"
+    expected_answer: "82.1"
+    gold_evidence:
+      - "82.1"
+      - "GLUE"
+
+  - q: "What training hardware was used for BERT-BASE?"
+    expected_answer: "4 Cloud TPUs (16 TPU chips)"
+    gold_evidence:
+      - "Cloud TPUs"
+      - "TPU"
