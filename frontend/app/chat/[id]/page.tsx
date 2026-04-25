@@ -65,7 +65,12 @@ export default function ChatPage() {
     try {
       await deleteConversation(id);
       if (id === conversationId) {
-        router.push("/library");
+        const remaining = conversations.filter((c) => c.id !== id);
+        if (remaining.length > 0) {
+          router.push(`/chat/${remaining[0].id}`);
+        } else {
+          router.push("/library");
+        }
       } else {
         await loadData();
       }
