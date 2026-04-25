@@ -64,6 +64,9 @@ export default function ChatPage() {
     if (id === null) return;
     try {
       await deleteConversation(id);
+      // Drop from the sidebar immediately so the deleted item doesn't
+      // ghost during the navigation transition.
+      setConversations((prev) => prev.filter((c) => c.id !== id));
       if (id === conversationId) {
         const remaining = conversations.filter((c) => c.id !== id);
         if (remaining.length > 0) {
@@ -93,8 +96,15 @@ export default function ChatPage() {
   }, [conversationId, signOut]);
 
   useEffect(() => {
+    // Reset transient view state synchronously on conversation switch so
+    // the previous conversation's transcript doesn't bleed into the new
+    // one during the loadData round-trip.
+    setMessages([]);
+    setStreamedAnswer("");
+    setError(null);
+    setSelectedChunkId(null);
     loadData();
-  }, [loadData]);
+  }, [conversationId, loadData]);
 
   useEffect(() => {
     const el = transcriptRef.current;
