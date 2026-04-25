@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
+import { UploadZone } from "@/components/upload-zone";
 import {
   type DocumentOut,
   type DocumentStatus,
@@ -17,7 +18,7 @@ export default function LibraryPage() {
   const [docs, setDocs] = useState<DocumentOut[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [progress, setProgress] = useState<number | null>(null);
 
   const signOut = useCallback(() => {
     clearToken();
@@ -56,20 +57,20 @@ export default function LibraryPage() {
     }
   }
 
-  async function onUpload(e: React.FormEvent) {
-    e.preventDefault();
-    const file = fileRef.current?.files?.[0];
-    if (!file) return;
+  async function handleFile(file: File) {
     setUploading(true);
     setError(null);
+    setProgress(0);
     try {
-      await uploadDocument(file);
-      if (fileRef.current) fileRef.current.value = "";
+      await uploadDocument(file, (loaded, total) => {
+        setProgress(Math.round((loaded / total) * 100));
+      });
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "upload failed");
     } finally {
       setUploading(false);
+      setProgress(null);
     }
   }
 
@@ -82,21 +83,13 @@ export default function LibraryPage() {
         </button>
       </header>
 
-      <form onSubmit={onUpload} className="mb-8 flex gap-3">
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".pdf,.docx"
-          className="flex-1 rounded border border-neutral-300 bg-white px-3 py-2"
+      <div className="mb-8">
+        <UploadZone
+          onFile={handleFile}
+          progress={uploading ? progress : null}
+          busy={uploading}
         />
-        <button
-          type="submit"
-          disabled={uploading}
-          className="rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-50"
-        >
-          {uploading ? "uploading..." : "upload"}
-        </button>
-      </form>
+      </div>
       {error && <p className="mb-4 text-sm text-red-600">{error}</p>}
 
       <ul className="space-y-2">

@@ -86,12 +86,45 @@ export async function listDocuments(): Promise<DocumentOut[]> {
   return res.json();
 }
 
-export async function uploadDocument(file: File): Promise<UploadResponse> {
+export async function uploadDocument(
+  file: File,
+  onProgress?: (loaded: number, total: number) => void,
+): Promise<UploadResponse> {
   const fd = new FormData();
   fd.append("file", file);
-  const res = await apiFetch("/documents", { method: "POST", body: fd });
-  await throwIfBad(res, "upload");
-  return res.json();
+  return new Promise<UploadResponse>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_URL}/documents`);
+    const token =
+      typeof window !== "undefined" ? window.localStorage.getItem(TOKEN_KEY) : null;
+    if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(e.loaded, e.total);
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          reject(new Error("upload: invalid response"));
+        }
+        return;
+      }
+      let detail = `upload failed (${xhr.status})`;
+      try {
+        const body = JSON.parse(xhr.responseText);
+        if (body?.detail) detail = `upload: ${body.detail}`;
+      } catch {
+        // keep default
+      }
+      reject(new Error(detail));
+    };
+
+    xhr.onerror = () => reject(new Error("upload network error"));
+    xhr.send(fd);
+  });
 }
 
 export type Conversation = {
