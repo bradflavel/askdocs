@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UploadZone } from "@/components/upload-zone";
 import {
@@ -19,6 +19,8 @@ export default function LibraryPage() {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
+  const noChangeCountRef = useRef(0);
+  const prevTerminalIdsRef = useRef<Set<number>>(new Set());
 
   const signOut = useCallback(() => {
     clearToken();
@@ -28,6 +30,16 @@ export default function LibraryPage() {
   const refresh = useCallback(async () => {
     try {
       const list = await listDocuments();
+      const terminalNow = new Set(
+        list
+          .filter((d) => d.status === "ready" || d.status === "failed")
+          .map((d) => d.id),
+      );
+      const transitioned = [...terminalNow].some(
+        (id) => !prevTerminalIdsRef.current.has(id),
+      );
+      noChangeCountRef.current = transitioned ? 0 : noChangeCountRef.current + 1;
+      prevTerminalIdsRef.current = terminalNow;
       setDocs(list);
     } catch {
       signOut();
@@ -43,8 +55,49 @@ export default function LibraryPage() {
       (d) => d.status === "pending" || d.status === "processing",
     );
     if (!hasNonTerminal) return;
-    const id = setInterval(refresh, 2000);
-    return () => clearInterval(id);
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    const intervalMs = () => {
+      const c = noChangeCountRef.current;
+      if (c >= 6) return 10000;
+      if (c >= 3) return 5000;
+      return 2000;
+    };
+
+    const schedule = () => {
+      if (cancelled) return;
+      if (document.visibilityState === "hidden") {
+        timer = null;
+        return;
+      }
+      timer = setTimeout(() => {
+        timer = null;
+        if (cancelled) return;
+        void refresh();
+      }, intervalMs());
+    };
+
+    const onVisibilityChange = () => {
+      if (cancelled) return;
+      if (document.visibilityState === "visible") {
+        noChangeCountRef.current = 0;
+        if (timer === null) void refresh();
+      } else if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+
+    schedule();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      if (timer !== null) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [docs, refresh]);
 
   async function onChat(documentId: number) {
