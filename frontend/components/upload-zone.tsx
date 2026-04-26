@@ -72,8 +72,8 @@ export function UploadZone({ onFile, progress = null, busy = false }: Props) {
       onDragLeave={() => setDragActive(false)}
       className={`relative cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
         dragActive
-          ? "border-blue-500 bg-blue-50"
-          : "border-neutral-300 bg-white hover:border-neutral-400"
+          ? "border-blue-500 bg-blue-50 dark:bg-blue-950"
+          : "border-neutral-300 bg-white hover:border-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:border-neutral-600"
       } ${busy ? "pointer-events-none opacity-60" : ""}`}
     >
       <input
@@ -83,27 +83,33 @@ export function UploadZone({ onFile, progress = null, busy = false }: Props) {
         onChange={onChange}
         className="hidden"
       />
-      <p className="text-sm text-neutral-600">
+      <p className="text-sm text-neutral-600 dark:text-neutral-300">
         {dragActive
           ? "Drop to upload"
           : "Drag a PDF or DOCX here, or click to choose"}
       </p>
-      <p className="mt-1 text-xs text-neutral-500">Up to 50MB</p>
+      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+        Up to 50MB
+      </p>
 
       {progress !== null && (
         <div className="mt-4">
-          <div className="h-2 w-full rounded-full bg-neutral-200">
+          <div className="h-2 w-full rounded-full bg-neutral-200 dark:bg-neutral-800">
             <div
               className="h-2 rounded-full bg-blue-500 transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="mt-1 text-xs text-neutral-500">{progress}%</p>
+          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+            {progress}%
+          </p>
         </div>
       )}
 
       {validationError && (
-        <p className="mt-3 text-xs text-red-600">{validationError}</p>
+        <p className="mt-3 text-xs text-red-600 dark:text-red-400">
+          {validationError}
+        </p>
       )}
     </div>
   );

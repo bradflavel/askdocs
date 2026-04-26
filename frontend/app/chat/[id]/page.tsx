@@ -8,6 +8,7 @@ import { CitationPill } from "@/components/citation-pill";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Skeleton } from "@/components/skeleton";
 import { SourcePanel } from "@/components/source-panel";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/components/toast";
 import {
   type Conversation,
@@ -204,12 +205,14 @@ export default function ChatPage() {
 
   return (
     <main className="flex h-screen">
-      <aside className="flex w-72 flex-col border-r border-neutral-200 bg-white p-4">
+      <aside className="flex w-72 flex-col border-r border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-neutral-600">Conversations</h2>
+          <h2 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400">
+            Conversations
+          </h2>
           <button
             onClick={() => router.push("/library")}
-            className="rounded bg-neutral-900 px-2 py-1 text-xs text-white"
+            className="rounded bg-neutral-900 px-2 py-1 text-xs text-white dark:bg-neutral-100 dark:text-neutral-900"
           >
             new chat
           </button>
@@ -238,7 +241,7 @@ export default function ChatPage() {
                       if (e.key === "Enter") void saveRename(c.id);
                       else if (e.key === "Escape") setEditingId(null);
                     }}
-                    className="w-full rounded border border-neutral-400 bg-white px-2 py-2 text-sm"
+                    className="w-full rounded border border-neutral-400 bg-white px-2 py-2 text-sm dark:border-neutral-600 dark:bg-neutral-800 dark:text-neutral-100"
                   />
                 ) : (
                   <div className="flex items-center gap-1">
@@ -246,8 +249,8 @@ export default function ChatPage() {
                       onClick={() => router.push(`/chat/${c.id}`)}
                       className={`flex-1 truncate rounded px-2 py-2 text-left text-sm ${
                         isActive
-                          ? "bg-neutral-900 text-white"
-                          : "hover:bg-neutral-100"
+                          ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
+                          : "hover:bg-neutral-100 dark:hover:bg-neutral-800"
                       }`}
                     >
                       {c.title ?? `Conversation ${c.id}`}
@@ -260,7 +263,7 @@ export default function ChatPage() {
                           setEditingId(c.id);
                           setEditingTitle(c.title ?? "");
                         }}
-                        className="rounded px-1 py-1 text-xs text-neutral-500 hover:text-neutral-900"
+                        className="rounded px-1 py-1 text-xs text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100"
                       >
                         ✎
                       </button>
@@ -268,7 +271,7 @@ export default function ChatPage() {
                         type="button"
                         title="Delete"
                         onClick={() => setPendingDeleteId(c.id)}
-                        className="rounded px-1 py-1 text-xs text-neutral-500 hover:text-red-600"
+                        className="rounded px-1 py-1 text-xs text-neutral-500 hover:text-red-600 dark:text-neutral-400 dark:hover:text-red-400"
                       >
                         ✕
                       </button>
@@ -279,23 +282,31 @@ export default function ChatPage() {
             );
           })}
           {loaded && conversations.length === 0 && (
-            <li className="text-xs text-neutral-500">No conversations yet.</li>
+            <li className="text-xs text-neutral-500 dark:text-neutral-400">
+              No conversations yet.
+            </li>
           )}
         </ul>
-        <button onClick={signOut} className="mt-4 text-xs text-neutral-500 underline">
-          sign out
-        </button>
+        <div className="mt-4 flex items-center justify-between">
+          <ThemeToggle />
+          <button
+            onClick={signOut}
+            className="text-xs text-neutral-500 underline dark:text-neutral-400"
+          >
+            sign out
+          </button>
+        </div>
       </aside>
 
       <section className="relative flex flex-1 flex-col">
         <div ref={transcriptRef} className="flex-1 space-y-4 overflow-y-auto p-6">
           {!loaded && (
             <>
-              <div className="ml-auto max-w-2xl space-y-2 rounded-lg bg-neutral-200 px-4 py-3">
-                <Skeleton className="h-3 w-32 bg-neutral-300" />
-                <Skeleton className="h-4 w-64 bg-neutral-300" />
+              <div className="ml-auto max-w-2xl space-y-2 rounded-lg bg-neutral-200 px-4 py-3 dark:bg-neutral-800">
+                <Skeleton className="h-3 w-32 bg-neutral-300 dark:bg-neutral-700" />
+                <Skeleton className="h-4 w-64 bg-neutral-300 dark:bg-neutral-700" />
               </div>
-              <div className="max-w-2xl space-y-2 rounded-lg border border-neutral-200 bg-white px-4 py-3">
+              <div className="max-w-2xl space-y-2 rounded-lg border border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900">
                 <Skeleton className="h-3 w-24" />
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-5/6" />
@@ -321,16 +332,16 @@ export default function ChatPage() {
             />
           )}
           {error && (
-            <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700">
+            <div className="rounded border border-red-300 bg-red-50 p-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
               {error}
             </div>
           )}
           {loaded && messages.length === 0 && !streaming && (
-            <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-12 text-center">
-              <p className="text-sm font-medium text-neutral-700">
+            <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-12 text-center dark:border-neutral-700 dark:bg-neutral-900">
+              <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
                 Ready when you are
               </p>
-              <p className="mt-1 text-xs text-neutral-500">
+              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
                 Ask a question about this document to get started.
               </p>
             </div>
@@ -345,12 +356,15 @@ export default function ChatPage() {
               setAtBottom(true);
               setHasNewContent(false);
             }}
-            className="absolute bottom-24 left-1/2 -translate-x-1/2 rounded-full bg-neutral-900 px-3 py-1.5 text-xs text-white shadow-lg hover:bg-neutral-800"
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 rounded-full bg-neutral-900 px-3 py-1.5 text-xs text-white shadow-lg hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
           >
             ↓ new content
           </button>
         )}
-        <form onSubmit={onSubmit} className="border-t border-neutral-200 bg-white p-4">
+        <form
+          onSubmit={onSubmit}
+          className="border-t border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+        >
           <div className="flex gap-2">
             <input
               type="text"
@@ -358,7 +372,7 @@ export default function ChatPage() {
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               disabled={streaming}
-              className="flex-1 rounded border border-neutral-300 px-3 py-2"
+              className="flex-1 rounded border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500"
             />
             {streaming ? (
               <button
@@ -372,7 +386,7 @@ export default function ChatPage() {
               <button
                 type="submit"
                 disabled={!question.trim()}
-                className="rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-50"
+                className="rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
               >
                 ask
               </button>
@@ -415,15 +429,15 @@ function MessageBubble({
     <div
       className={`max-w-2xl rounded-lg px-4 py-3 ${
         role === "user"
-          ? "ml-auto bg-neutral-900 text-white"
-          : "border border-neutral-200 bg-white text-neutral-900"
+          ? "ml-auto bg-neutral-900 text-white dark:bg-blue-600"
+          : "border border-neutral-200 bg-white text-neutral-900 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-100"
       }`}
     >
       <div className="mb-1 text-[10px] uppercase tracking-wide opacity-60">
         {role}
       </div>
       {role === "assistant" ? (
-        <div className="prose prose-sm max-w-none prose-p:my-2 prose-pre:my-2 prose-ul:my-2 prose-ol:my-2 prose-headings:mt-4 prose-headings:mb-2">
+        <div className="prose prose-sm max-w-none prose-p:my-2 prose-pre:my-2 prose-ul:my-2 prose-ol:my-2 prose-headings:mt-4 prose-headings:mb-2 dark:prose-invert">
           <ReactMarkdown
             remarkPlugins={[remarkCitations(allowed)]}
             components={{
