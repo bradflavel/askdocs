@@ -194,10 +194,12 @@ export async function getMessages(conversationId: number): Promise<Message[]> {
 export async function sendChat(
   conversationId: number,
   question: string,
+  signal?: AbortSignal,
 ): Promise<Response> {
   const res = await apiFetch("/chat", {
     method: "POST",
     body: JSON.stringify({ conversation_id: conversationId, question }),
+    signal,
   });
   if (!res.ok) {
     await throwIfBad(res, "chat");

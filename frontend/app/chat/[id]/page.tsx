@@ -42,6 +42,7 @@ export default function ChatPage() {
   const [atBottom, setAtBottom] = useState(true);
   const [hasNewContent, setHasNewContent] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const signOut = useCallback(() => {
     clearToken();
@@ -163,8 +164,11 @@ export default function ChatPage() {
     };
     setMessages((prev) => [...prev, optimisticUser]);
 
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      const res = await sendChat(conversationId, q);
+      const res = await sendChat(conversationId, q, controller.signal);
       for await (const frame of streamSSE(res)) {
         const payload = JSON.parse(frame.data);
         if (frame.event === "token") {
@@ -179,10 +183,23 @@ export default function ChatPage() {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "stream error");
+      if (controller.signal.aborted) {
+        // User cancelled. Drop the optimistic question and partial
+        // answer so the transcript matches what's persisted server-side
+        // (nothing — the chat route only persists on stream completion).
+        setMessages((prev) => prev.filter((m) => m.id !== -1));
+        setStreamedAnswer("");
+      } else {
+        setError(err instanceof Error ? err.message : "stream error");
+      }
     } finally {
+      abortControllerRef.current = null;
       setStreaming(false);
     }
+  }
+
+  function onStop() {
+    abortControllerRef.current?.abort();
   }
 
   return (
@@ -343,13 +360,23 @@ export default function ChatPage() {
               disabled={streaming}
               className="flex-1 rounded border border-neutral-300 px-3 py-2"
             />
-            <button
-              type="submit"
-              disabled={streaming || !question.trim()}
-              className="rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-50"
-            >
-              {streaming ? "..." : "ask"}
-            </button>
+            {streaming ? (
+              <button
+                type="button"
+                onClick={onStop}
+                className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+              >
+                stop
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!question.trim()}
+                className="rounded bg-neutral-900 px-4 py-2 text-white disabled:opacity-50"
+              >
+                ask
+              </button>
+            )}
           </div>
         </form>
       </section>
