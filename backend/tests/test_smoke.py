@@ -39,13 +39,13 @@ async def test_register_upload_ask(tiny_pdf: Path) -> None:
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         register_res = await client.post(
             "/auth/register",
-            json={"email": "ci@askdocs.local", "password": "ci-test-password"},
+            json={"email": "ci@example.com", "password": "ci-test-password"},
         )
         assert register_res.status_code in (201, 409)
 
         login_res = await client.post(
             "/auth/login",
-            json={"email": "ci@askdocs.local", "password": "ci-test-password"},
+            json={"email": "ci@example.com", "password": "ci-test-password"},
         )
         assert login_res.status_code == 200
         token = login_res.json()["access_token"]

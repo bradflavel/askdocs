@@ -7,8 +7,8 @@ from sqlalchemy import update
 from app.db import session_scope
 from app.documents.chunk import token_aware_split
 from app.documents.parse import NoTextLayerError, parse_document
-from app.retrieval.embed import embed_all
 from app.models import Chunk, Document
+from app.retrieval.embed import embed_all
 
 log = logging.getLogger(__name__)
 

@@ -1,8 +1,13 @@
 from dataclasses import dataclass
 
-SYSTEM_INSTRUCTION = """You are a research assistant. Answer the user's question using ONLY the information in the CONTEXT below. Cite sources inline using the format [chunk:ID] after each claim, where ID is one of the chunk ids shown. If the context does not contain the answer, reply exactly:
-"I don't know based on the provided documents."
-Do not invent facts, page numbers, or citations."""
+SYSTEM_INSTRUCTION = (
+    "You are a research assistant. Answer the user's question using ONLY "
+    "the information in the CONTEXT below. Cite sources inline using the "
+    "format [chunk:ID] after each claim, where ID is one of the chunk ids "
+    "shown. If the context does not contain the answer, reply exactly:\n"
+    '"I don\'t know based on the provided documents."\n'
+    "Do not invent facts, page numbers, or citations."
+)
 
 
 @dataclass
