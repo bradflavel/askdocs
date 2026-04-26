@@ -1,0 +1,66 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci.yml"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ruff
+        run: pip install "ruff>=0.7"
+      - name: ruff check
+        working-directory: backend
+        run: ruff check .
+      - name: ruff format
+        working-directory: backend
+        run: ruff format --check .
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: askdocs
+          POSTGRES_PASSWORD: askdocs
+          POSTGRES_DB: askdocs
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+asyncpg://askdocs:askdocs@localhost:5432/askdocs
+      JWT_SECRET: ci-test-secret
+      STORAGE_DIR: /tmp/askdocs-ci-storage
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install backend deps
+        working-directory: backend
+        run: pip install -e ".[dev]"
+      - name: Run migrations
+        working-directory: backend
+        run: alembic upgrade head
+      - name: Smoke test (skipped without OpenAI key)
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        working-directory: backend
+        run: pytest tests/test_smoke.py -v

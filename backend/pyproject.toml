@@ -32,6 +32,7 @@ dev = [
   "pytest-asyncio>=0.24",
   "ruff>=0.7",
   "mypy>=1.13",
+  "reportlab>=4.0",
 ]
 fallback-parser = [
   "unstructured[pdf]>=0.15",
