@@ -357,7 +357,7 @@ function MessageBubble({
         {role}
       </div>
       {role === "assistant" ? (
-        <div className="space-y-2 text-sm leading-relaxed">
+        <div className="prose prose-sm max-w-none prose-p:my-2 prose-pre:my-2 prose-ul:my-2 prose-ol:my-2 prose-headings:mt-4 prose-headings:mb-2">
           <ReactMarkdown
             remarkPlugins={[remarkCitations(allowed)]}
             components={{
