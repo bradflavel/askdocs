@@ -79,12 +79,12 @@ function ToastContainer({
         <button
           key={t.id}
           onClick={() => onDismiss(t.id)}
-          className={`pointer-events-auto min-w-[260px] max-w-sm rounded-lg px-4 py-3 text-left text-sm shadow-lg ${
+          className={`pointer-events-auto min-w-[260px] max-w-sm animate-slide-in-right rounded-lg px-4 py-3 text-left text-sm shadow-lg ${
             t.kind === "error"
               ? "bg-red-600 text-white"
               : t.kind === "success"
                 ? "bg-green-600 text-white"
-                : "bg-neutral-900 text-white"
+                : "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
           }`}
         >
           {t.message}

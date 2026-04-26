@@ -337,13 +337,29 @@ export default function ChatPage() {
             </div>
           )}
           {loaded && messages.length === 0 && !streaming && (
-            <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-12 text-center dark:border-neutral-700 dark:bg-neutral-900">
+            <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-10 text-center dark:border-neutral-700 dark:bg-neutral-900">
               <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
                 Ready when you are
               </p>
               <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-                Ask a question about this document to get started.
+                Try one of these or write your own:
               </p>
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
+                {[
+                  "What is this document about?",
+                  "Summarise the key findings.",
+                  "Who are the authors?",
+                ].map((q) => (
+                  <button
+                    key={q}
+                    type="button"
+                    onClick={() => setQuestion(q)}
+                    className="rounded-full border border-neutral-300 bg-white px-3 py-1 text-xs text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-300 dark:hover:bg-neutral-800"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

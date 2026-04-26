@@ -23,6 +23,7 @@ export default function LibraryPage() {
   const [loaded, setLoaded] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
+  const [creatingChatId, setCreatingChatId] = useState<number | null>(null);
   const noChangeCountRef = useRef(0);
   const prevTerminalIdsRef = useRef<Set<number>>(new Set());
 
@@ -109,11 +110,13 @@ export default function LibraryPage() {
   }, [docs, refresh]);
 
   async function onChat(documentId: number) {
+    setCreatingChatId(documentId);
     try {
       const conv = await createConversation(documentId);
       router.push(`/chat/${conv.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to start chat");
+      setCreatingChatId(null);
     }
   }
 
@@ -204,9 +207,10 @@ export default function LibraryPage() {
                 {d.status === "ready" && (
                   <button
                     onClick={() => onChat(d.id)}
-                    className="rounded bg-neutral-900 px-3 py-1 text-xs text-white dark:bg-neutral-100 dark:text-neutral-900"
+                    disabled={creatingChatId === d.id}
+                    className="rounded bg-neutral-900 px-3 py-1 text-xs text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
                   >
-                    chat
+                    {creatingChatId === d.id ? "..." : "chat"}
                   </button>
                 )}
               </div>
