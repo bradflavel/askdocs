@@ -2,7 +2,7 @@
 
 Ask grounded questions about your PDFs. Streamed answers with inline citations linking back to the exact source passage.
 
-**Live demo:** *coming soon. Vercel URL goes here after the Phase 4 deploy.*
+**Live demo:** [askdocs-sooty.vercel.app](https://askdocs-sooty.vercel.app)
 
 ---
 
