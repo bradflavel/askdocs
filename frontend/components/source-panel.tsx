@@ -1,9 +1,16 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
 import { Skeleton } from "@/components/skeleton";
 import { type ChunkContent, getChunk } from "@/lib/api";
+
+// react-pdf needs browser APIs; load it client-only to avoid SSR errors.
+const PdfPagePreview = dynamic(
+  () => import("@/components/pdf-page-preview").then((m) => m.PdfPagePreview),
+  { ssr: false, loading: () => <Skeleton className="h-[400px] w-full" /> },
+);
 
 type Props = {
   chunkId: number | null;
@@ -41,7 +48,7 @@ export function SourcePanel({ chunkId, onClose }: Props) {
   }, [chunkId]);
 
   return (
-    <aside className="flex w-80 flex-col border-l border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
+    <aside className="flex w-96 flex-col border-l border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400">
           Source
@@ -75,12 +82,20 @@ export function SourcePanel({ chunkId, onClose }: Props) {
         </p>
       )}
       {chunk && !loading && !error && (
-        <div className="flex-1 overflow-y-auto">
-          <div className="mb-2 text-xs text-neutral-500 dark:text-neutral-400">
-            Chunk {chunk.id} · pages {chunk.page_start ?? "?"}–
+        <div className="flex-1 space-y-3 overflow-y-auto">
+          <div className="text-xs text-neutral-500 dark:text-neutral-400">
+            {chunk.document_filename} · pages {chunk.page_start ?? "?"}–
             {chunk.page_end ?? "?"}
           </div>
-          <div className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-800 dark:text-neutral-200">
+          {chunk.document_filename.toLowerCase().endsWith(".pdf") &&
+            chunk.page_start && (
+              <PdfPagePreview
+                documentId={chunk.document_id}
+                pageNumber={chunk.page_start}
+                width={336}
+              />
+            )}
+          <div className="whitespace-pre-wrap rounded border border-neutral-200 bg-neutral-50 p-2 text-sm leading-relaxed text-neutral-800 dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-200">
             {chunk.content}
           </div>
         </div>
