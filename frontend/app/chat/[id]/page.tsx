@@ -39,6 +39,8 @@ export default function ChatPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const [atBottom, setAtBottom] = useState(true);
+  const [hasNewContent, setHasNewContent] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
 
   const signOut = useCallback(() => {
@@ -112,13 +114,36 @@ export default function ChatPage() {
     setError(null);
     setSelectedChunkId(null);
     setLoaded(false);
+    setAtBottom(true);
+    setHasNewContent(false);
     loadData();
   }, [conversationId, loadData]);
 
   useEffect(() => {
     const el = transcriptRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    if (atBottom) {
+      el.scrollTop = el.scrollHeight;
+      setHasNewContent(false);
+    } else {
+      setHasNewContent(true);
+    }
+    // atBottom intentionally omitted from deps — read at render time only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages, streamedAnswer]);
+
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const distance = el.scrollHeight - el.scrollTop - el.clientHeight;
+      const isAtBottom = distance <= 80;
+      setAtBottom(isAtBottom);
+      if (isAtBottom) setHasNewContent(false);
+    };
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -245,7 +270,7 @@ export default function ChatPage() {
         </button>
       </aside>
 
-      <section className="flex flex-1 flex-col">
+      <section className="relative flex flex-1 flex-col">
         <div ref={transcriptRef} className="flex-1 space-y-4 overflow-y-auto p-6">
           {!loaded && (
             <>
@@ -294,6 +319,20 @@ export default function ChatPage() {
             </div>
           )}
         </div>
+        {hasNewContent && !atBottom && (
+          <button
+            type="button"
+            onClick={() => {
+              const el = transcriptRef.current;
+              if (el) el.scrollTop = el.scrollHeight;
+              setAtBottom(true);
+              setHasNewContent(false);
+            }}
+            className="absolute bottom-24 left-1/2 -translate-x-1/2 rounded-full bg-neutral-900 px-3 py-1.5 text-xs text-white shadow-lg hover:bg-neutral-800"
+          >
+            ↓ new content
+          </button>
+        )}
         <form onSubmit={onSubmit} className="border-t border-neutral-200 bg-white p-4">
           <div className="flex gap-2">
             <input
