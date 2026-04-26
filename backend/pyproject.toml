@@ -19,7 +19,6 @@ dependencies = [
   "python-multipart>=0.0.12",
   "pypdf>=5.0",
   "python-docx>=1.1",
-  "unstructured[pdf]>=0.15",
   "langchain-text-splitters>=0.3",
   "tiktoken>=0.8",
   "openai>=1.50",
@@ -33,6 +32,10 @@ dev = [
   "pytest-asyncio>=0.24",
   "ruff>=0.7",
   "mypy>=1.13",
+  "reportlab>=4.0",
+]
+fallback-parser = [
+  "unstructured[pdf]>=0.15",
 ]
 
 [build-system]
@@ -48,6 +51,10 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "B", "UP"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+known-third-party = ["alembic"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

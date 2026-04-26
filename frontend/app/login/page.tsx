@@ -43,7 +43,7 @@ export default function LoginPage() {
           placeholder="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded border border-neutral-300 px-3 py-2"
+          className="w-full rounded border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
         <input
           type="password"
@@ -51,13 +51,15 @@ export default function LoginPage() {
           placeholder="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded border border-neutral-300 px-3 py-2"
+          className="w-full rounded border border-neutral-300 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:placeholder:text-neutral-500"
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+        )}
         <button
           type="submit"
           disabled={busy}
-          className="w-full rounded bg-neutral-900 px-3 py-2 text-white disabled:opacity-50"
+          className="w-full rounded bg-neutral-900 px-3 py-2 text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
         >
           {busy ? "..." : mode === "login" ? "Sign in" : "Register"}
         </button>
@@ -65,7 +67,7 @@ export default function LoginPage() {
       <button
         type="button"
         onClick={() => setMode(mode === "login" ? "register" : "login")}
-        className="mt-4 text-sm text-neutral-600 underline"
+        className="mt-4 text-sm text-neutral-600 underline dark:text-neutral-400"
       >
         {mode === "login" ? "need an account?" : "have an account?"}
       </button>

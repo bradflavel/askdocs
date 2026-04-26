@@ -43,15 +43,21 @@ export function ConfirmDialog({
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-sm rounded-lg bg-white p-5 shadow-lg"
+        className="w-full max-w-sm rounded-lg bg-white p-5 shadow-lg dark:bg-neutral-900"
       >
-        <h2 className="text-base font-semibold text-neutral-900">{title}</h2>
-        {body && <p className="mt-2 text-sm text-neutral-600">{body}</p>}
+        <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">
+          {title}
+        </h2>
+        {body && (
+          <p className="mt-2 text-sm text-neutral-600 dark:text-neutral-400">
+            {body}
+          </p>
+        )}
         <div className="mt-5 flex justify-end gap-2">
           <button
             type="button"
             onClick={onCancel}
-            className="rounded border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50"
+            className="rounded border border-neutral-300 bg-white px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
           >
             {cancelLabel}
           </button>
@@ -62,7 +68,7 @@ export function ConfirmDialog({
             className={`rounded px-3 py-1.5 text-sm text-white ${
               destructive
                 ? "bg-red-600 hover:bg-red-700"
-                : "bg-neutral-900 hover:bg-neutral-800"
+                : "bg-neutral-900 hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-200"
             }`}
           >
             {confirmLabel}

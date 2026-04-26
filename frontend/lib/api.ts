@@ -194,10 +194,12 @@ export async function getMessages(conversationId: number): Promise<Message[]> {
 export async function sendChat(
   conversationId: number,
   question: string,
+  signal?: AbortSignal,
 ): Promise<Response> {
   const res = await apiFetch("/chat", {
     method: "POST",
     body: JSON.stringify({ conversation_id: conversationId, question }),
+    signal,
   });
   if (!res.ok) {
     await throwIfBad(res, "chat");
@@ -208,6 +210,7 @@ export async function sendChat(
 export type ChunkContent = {
   id: number;
   document_id: number;
+  document_filename: string;
   chunk_index: number;
   content: string;
   page_start: number | null;
@@ -218,4 +221,10 @@ export async function getChunk(chunkId: number): Promise<ChunkContent> {
   const res = await apiFetch(`/chunks/${chunkId}`);
   await throwIfBad(res, "load chunk");
   return res.json();
+}
+
+export async function getDocumentFile(documentId: number): Promise<ArrayBuffer> {
+  const res = await apiFetch(`/documents/${documentId}/file`);
+  await throwIfBad(res, "load document file");
+  return res.arrayBuffer();
 }

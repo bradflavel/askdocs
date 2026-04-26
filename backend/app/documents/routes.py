@@ -14,6 +14,7 @@ from fastapi import (
     UploadFile,
     status,
 )
+from fastapi.responses import FileResponse
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,7 +24,7 @@ from app.db import get_session
 from app.documents.ingest import process_document
 from app.documents.schemas import DocumentOut, UploadResponse
 from app.models import Document
-from app.storage import document_dir, move_to_final, temp_upload_path
+from app.storage import document_dir, final_document_path, move_to_final, temp_upload_path
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -120,9 +121,7 @@ async def list_documents(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> list[DocumentOut]:
     result = await session.execute(
-        select(Document)
-        .where(Document.user_id == user.id)
-        .order_by(Document.uploaded_at.desc())
+        select(Document).where(Document.user_id == user.id).order_by(Document.uploaded_at.desc())
     )
     return [DocumentOut.model_validate(d) for d in result.scalars()]
 
@@ -137,6 +136,24 @@ async def get_document(
     if not doc or doc.user_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="document not found")
     return DocumentOut.model_validate(doc)
+
+
+@router.get("/{document_id}/file")
+async def get_document_file(
+    document_id: int,
+    user: CurrentUser,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> FileResponse:
+    doc = await session.get(Document, document_id)
+    if not doc or doc.user_id != user.id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="document not found")
+    path = final_document_path(user.id, doc.id, doc.filename)
+    if not path.exists():
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="file not found on disk")
+    media_type = (
+        "application/pdf" if doc.filename.lower().endswith(".pdf") else "application/octet-stream"
+    )
+    return FileResponse(path, media_type=media_type, filename=doc.filename)
 
 
 @router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)

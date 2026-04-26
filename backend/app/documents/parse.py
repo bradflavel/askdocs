@@ -46,7 +46,14 @@ def should_fallback_to_unstructured(pages: list[tuple[int, str]]) -> bool:
 
 
 def parse_pdf_unstructured(path: Path) -> list[tuple[int, str]]:
-    from unstructured.partition.pdf import partition_pdf
+    try:
+        from unstructured.partition.pdf import partition_pdf
+    except ImportError as e:
+        raise RuntimeError(
+            "This PDF needs the unstructured fallback parser, which is not "
+            "installed in this image. Install with the [fallback-parser] "
+            "extras to enable it."
+        ) from e
 
     elements = partition_pdf(str(path))
     by_page: dict[int, list[str]] = {}
@@ -66,9 +73,7 @@ def parse_document(path: Path) -> list[tuple[int, str]]:
             log.info("falling back to unstructured parser for %s", path)
             pages = parse_pdf_unstructured(path)
         if all(not t.strip() for _, t in pages):
-            raise NoTextLayerError(
-                "This PDF has no text layer. OCR support is on the roadmap."
-            )
+            raise NoTextLayerError("This PDF has no text layer. OCR support is on the roadmap.")
         return pages
     if suffix == ".docx":
         return parse_docx(path)

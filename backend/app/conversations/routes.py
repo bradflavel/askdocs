@@ -88,9 +88,7 @@ async def rename_conversation(
     conv = await load_owned_conversation(session, conversation_id, user.id)
     title = body.title.strip()
     if not title:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, detail="title cannot be empty"
-        )
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="title cannot be empty")
     conv.title = title
     await session.commit()
     await session.refresh(conv)

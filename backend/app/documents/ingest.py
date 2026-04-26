@@ -7,8 +7,8 @@ from sqlalchemy import update
 from app.db import session_scope
 from app.documents.chunk import token_aware_split
 from app.documents.parse import NoTextLayerError, parse_document
-from app.retrieval.embed import embed_all
 from app.models import Chunk, Document
+from app.retrieval.embed import embed_all
 
 log = logging.getLogger(__name__)
 
@@ -27,9 +27,7 @@ async def process_document(document_id: int, path: str) -> None:
     try:
         async with session_scope() as session:
             await session.execute(
-                update(Document)
-                .where(Document.id == document_id)
-                .values(status="processing")
+                update(Document).where(Document.id == document_id).values(status="processing")
             )
 
         pages = await asyncio.to_thread(parse_document, file_path)
