@@ -4,6 +4,7 @@ Uses real OpenAI calls — guarded by OPENAI_API_KEY env var so this
 skips gracefully on fork PRs and in any environment where the secret
 isn't configured.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -62,9 +63,7 @@ async def test_register_upload_ask(tiny_pdf: Path) -> None:
 
         doc: dict = {}
         for _ in range(60):
-            status_res = await client.get(
-                f"/documents/{doc_id}", headers=headers
-            )
+            status_res = await client.get(f"/documents/{doc_id}", headers=headers)
             doc = status_res.json()
             if doc["status"] in ("ready", "failed"):
                 break

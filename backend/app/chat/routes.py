@@ -64,24 +64,21 @@ async def chat(
 
             async with session_scope() as s:
                 history_rows = (
-                    await s.execute(
-                        select(Message)
-                        .where(Message.conversation_id == body.conversation_id)
-                        .order_by(Message.created_at.desc(), Message.id.desc())
-                        .limit(HISTORY_MESSAGES)
+                    (
+                        await s.execute(
+                            select(Message)
+                            .where(Message.conversation_id == body.conversation_id)
+                            .order_by(Message.created_at.desc(), Message.id.desc())
+                            .limit(HISTORY_MESSAGES)
+                        )
                     )
-                ).scalars().all()
-                history = [
-                    {"role": m.role, "content": m.content}
-                    for m in reversed(history_rows)
-                ]
+                    .scalars()
+                    .all()
+                )
+                history = [{"role": m.role, "content": m.content} for m in reversed(history_rows)]
 
-                vec_ids = await search_vector(
-                    s, document_id, q_emb, k=TOP_K_PER_RETRIEVER
-                )
-                bm25_ids = await search_bm25(
-                    s, document_id, question, k=TOP_K_PER_RETRIEVER
-                )
+                vec_ids = await search_vector(s, document_id, q_emb, k=TOP_K_PER_RETRIEVER)
+                bm25_ids = await search_bm25(s, document_id, question, k=TOP_K_PER_RETRIEVER)
                 ranked_lists = [vec_ids]
                 if bm25_ids:
                     ranked_lists.append(bm25_ids)
@@ -92,8 +89,10 @@ async def chat(
                     return
 
                 chunk_rows = (
-                    await s.execute(select(Chunk).where(Chunk.id.in_(allowed_ids)))
-                ).scalars().all()
+                    (await s.execute(select(Chunk).where(Chunk.id.in_(allowed_ids))))
+                    .scalars()
+                    .all()
+                )
                 by_id = {c.id: c for c in chunk_rows}
                 context_chunks = [
                     ContextChunk(

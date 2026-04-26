@@ -27,9 +27,7 @@ async def process_document(document_id: int, path: str) -> None:
     try:
         async with session_scope() as session:
             await session.execute(
-                update(Document)
-                .where(Document.id == document_id)
-                .values(status="processing")
+                update(Document).where(Document.id == document_id).values(status="processing")
             )
 
         pages = await asyncio.to_thread(parse_document, file_path)

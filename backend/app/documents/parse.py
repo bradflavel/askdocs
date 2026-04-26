@@ -73,9 +73,7 @@ def parse_document(path: Path) -> list[tuple[int, str]]:
             log.info("falling back to unstructured parser for %s", path)
             pages = parse_pdf_unstructured(path)
         if all(not t.strip() for _, t in pages):
-            raise NoTextLayerError(
-                "This PDF has no text layer. OCR support is on the roadmap."
-            )
+            raise NoTextLayerError("This PDF has no text layer. OCR support is on the roadmap.")
         return pages
     if suffix == ".docx":
         return parse_docx(path)

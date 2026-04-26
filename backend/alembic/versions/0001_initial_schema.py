@@ -5,6 +5,7 @@ Revises:
 Create Date: 2026-04-23
 
 """
+
 from alembic import op
 
 revision = "0001"
@@ -97,9 +98,7 @@ def upgrade() -> None:
         )
         """
     )
-    op.execute(
-        "CREATE INDEX idx_messages_conversation ON messages(conversation_id, created_at)"
-    )
+    op.execute("CREATE INDEX idx_messages_conversation ON messages(conversation_id, created_at)")
 
 
 def downgrade() -> None:

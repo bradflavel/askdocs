@@ -121,9 +121,7 @@ async def list_documents(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> list[DocumentOut]:
     result = await session.execute(
-        select(Document)
-        .where(Document.user_id == user.id)
-        .order_by(Document.uploaded_at.desc())
+        select(Document).where(Document.user_id == user.id).order_by(Document.uploaded_at.desc())
     )
     return [DocumentOut.model_validate(d) for d in result.scalars()]
 
@@ -153,9 +151,7 @@ async def get_document_file(
     if not path.exists():
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="file not found on disk")
     media_type = (
-        "application/pdf"
-        if doc.filename.lower().endswith(".pdf")
-        else "application/octet-stream"
+        "application/pdf" if doc.filename.lower().endswith(".pdf") else "application/octet-stream"
     )
     return FileResponse(path, media_type=media_type, filename=doc.filename)
 
