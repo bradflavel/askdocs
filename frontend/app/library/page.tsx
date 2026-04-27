@@ -3,14 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { AppHeader } from "@/components/app-header";
+import { RecentConversations } from "@/components/recent-conversations";
 import { Skeleton } from "@/components/skeleton";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/components/toast";
 import { UploadZone } from "@/components/upload-zone";
 import {
   type DocumentOut,
   type DocumentStatus,
-  clearToken,
   createConversation,
   listDocuments,
   uploadDocument,
@@ -26,11 +26,6 @@ export default function LibraryPage() {
   const [creatingChatId, setCreatingChatId] = useState<number | null>(null);
   const noChangeCountRef = useRef(0);
   const prevTerminalIdsRef = useRef<Set<number>>(new Set());
-
-  const signOut = useCallback(() => {
-    clearToken();
-    router.push("/login");
-  }, [router]);
 
   const refresh = useCallback(async () => {
     try {
@@ -137,88 +132,87 @@ export default function LibraryPage() {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-10">
-      <header className="mb-8 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Library</h1>
-        <div className="flex items-center gap-3">
-          <ThemeToggle />
-          <button
-            onClick={signOut}
-            className="text-sm text-neutral-600 underline dark:text-neutral-400"
-          >
-            sign out
-          </button>
-        </div>
-      </header>
+    <div className="flex min-h-screen flex-col">
+      <AppHeader />
 
-      <div className="mb-8">
-        <UploadZone
-          onFile={handleFile}
-          progress={uploading ? progress : null}
-          busy={uploading}
-        />
-      </div>
+      <main className="mx-auto w-full max-w-3xl px-4 py-10">
+        <h1 className="mb-6 text-2xl font-semibold">Library</h1>
 
-      {!loaded ? (
-        <ul className="space-y-2">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <li
-              key={i}
-              className="flex items-center justify-between rounded border border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900"
-            >
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="h-3 w-32" />
-              </div>
-              <Skeleton className="h-5 w-16" />
-            </li>
-          ))}
-        </ul>
-      ) : docs.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-12 text-center dark:border-neutral-700 dark:bg-neutral-900">
-          <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">
-            No documents yet
-          </p>
-          <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-            Drop a PDF or DOCX above to start asking questions about it.
-          </p>
+        <div className="mb-8">
+          <UploadZone
+            onFile={handleFile}
+            progress={uploading ? progress : null}
+            busy={uploading}
+          />
         </div>
-      ) : (
-        <ul className="space-y-2">
-          {docs.map((d) => (
-            <li
-              key={d.id}
-              className="flex items-center justify-between rounded border border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900"
-            >
-              <div>
-                <div className="font-medium">{d.filename}</div>
-                <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                  {d.page_count ?? "?"} pages · uploaded{" "}
-                  {new Date(d.uploaded_at).toLocaleString()}
+
+        {!loaded ? (
+          <ul className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <li
+                key={i}
+                className="flex items-center justify-between rounded border border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900"
+              >
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-3 w-32" />
                 </div>
-                {d.error && (
-                  <div className="text-xs text-red-600 dark:text-red-400">
-                    {d.error}
+                <Skeleton className="h-5 w-16" />
+              </li>
+            ))}
+          </ul>
+        ) : docs.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-neutral-300 bg-white px-6 py-16 text-center dark:border-neutral-700 dark:bg-neutral-900">
+            <p className="text-base font-medium text-neutral-800 dark:text-neutral-100">
+              Welcome — upload your first document to get started.
+            </p>
+            <p className="mx-auto mt-2 max-w-md text-sm text-neutral-600 dark:text-neutral-400">
+              Drop a PDF or DOCX above. AskDocs will parse it, embed the
+              chunks, and let you chat with grounded, cited answers.
+            </p>
+            <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
+              ↑ the upload area is right above this card
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {docs.map((d) => (
+              <li
+                key={d.id}
+                className="flex items-center justify-between rounded border border-neutral-200 bg-white px-4 py-3 dark:border-neutral-800 dark:bg-neutral-900"
+              >
+                <div>
+                  <div className="font-medium">{d.filename}</div>
+                  <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                    {d.page_count ?? "?"} pages · uploaded{" "}
+                    {new Date(d.uploaded_at).toLocaleString()}
                   </div>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <StatusBadge status={d.status} />
-                {d.status === "ready" && (
-                  <button
-                    onClick={() => onChat(d.id)}
-                    disabled={creatingChatId === d.id}
-                    className="rounded bg-neutral-900 px-3 py-1 text-xs text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
-                  >
-                    {creatingChatId === d.id ? "..." : "chat"}
-                  </button>
-                )}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+                  {d.error && (
+                    <div className="text-xs text-red-600 dark:text-red-400">
+                      {d.error}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={d.status} />
+                  {d.status === "ready" && (
+                    <button
+                      onClick={() => onChat(d.id)}
+                      disabled={creatingChatId === d.id}
+                      className="rounded bg-neutral-900 px-3 py-1 text-xs text-white disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900"
+                    >
+                      {creatingChatId === d.id ? "..." : "chat"}
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {loaded && docs.length > 0 && <RecentConversations />}
+      </main>
+    </div>
   );
 }
 

@@ -4,16 +4,15 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 
+import { AppHeader } from "@/components/app-header";
 import { CitationPill } from "@/components/citation-pill";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Skeleton } from "@/components/skeleton";
 import { SourcePanel } from "@/components/source-panel";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { useToast } from "@/components/toast";
 import {
   type Conversation,
   type Message,
-  clearToken,
   deleteConversation,
   getMessages,
   listConversations,
@@ -44,11 +43,6 @@ export default function ChatPage() {
   const [hasNewContent, setHasNewContent] = useState(false);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  const signOut = useCallback(() => {
-    clearToken();
-    router.push("/login");
-  }, [router]);
 
   const onCitationClick = useCallback((chunkId: number) => {
     setSelectedChunkId(chunkId);
@@ -204,7 +198,9 @@ export default function ChatPage() {
   }
 
   return (
-    <main className="flex h-screen">
+    <div className="flex h-screen flex-col">
+      <AppHeader />
+      <main className="flex flex-1 overflow-hidden">
       <aside className="flex w-72 flex-col border-r border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-neutral-600 dark:text-neutral-400">
@@ -287,15 +283,6 @@ export default function ChatPage() {
             </li>
           )}
         </ul>
-        <div className="mt-4 flex items-center justify-between">
-          <ThemeToggle />
-          <button
-            onClick={signOut}
-            className="text-xs text-neutral-500 underline dark:text-neutral-400"
-          >
-            sign out
-          </button>
-        </div>
       </aside>
 
       <section className="relative flex flex-1 flex-col">
@@ -425,7 +412,8 @@ export default function ChatPage() {
         onConfirm={() => void confirmDelete()}
         onCancel={() => setPendingDeleteId(null)}
       />
-    </main>
+      </main>
+    </div>
   );
 }
 
