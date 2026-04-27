@@ -61,7 +61,12 @@ async def process_document(document_id: int, path: str) -> None:
         log.info("ingested document_id=%s chunks=%d", document_id, len(pieces))
     except NoTextLayerError as e:
         log.warning("no text layer: document_id=%s", document_id)
+        # NoTextLayerError carries a deliberately user-facing message; safe
+        # to surface verbatim. Other exception paths are sanitised below.
         await _set_failed(document_id, str(e))
-    except Exception as e:
+    except Exception:
         log.exception("ingestion failed: document_id=%s", document_id)
-        await _set_failed(document_id, str(e))
+        await _set_failed(
+            document_id,
+            "Ingestion failed. Try deleting and re-uploading the document.",
+        )

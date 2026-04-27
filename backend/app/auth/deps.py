@@ -24,7 +24,11 @@ async def get_current_user(
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="invalid token")
-    user = await session.get(User, int(user_id))
+    try:
+        user_id_int = int(user_id)
+    except (TypeError, ValueError) as e:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="invalid token") from e
+    user = await session.get(User, user_id_int)
     if not user:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="user not found")
     return user

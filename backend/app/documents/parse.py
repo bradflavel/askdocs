@@ -7,6 +7,11 @@ log = logging.getLogger(__name__)
 
 EMPTY_PAGE_RATIO = 0.30
 MIN_CHARS_PER_PAGE = 100
+# Smallest amount of total extracted text that makes us trust pypdf rather
+# than triggering the unstructured fallback. Tuned so a short receipt or
+# single-paragraph note ingests cleanly even in prod where unstructured
+# isn't installed; only documents with virtually no text fall back.
+MIN_TOTAL_CHARS_TO_TRUST_PYPDF = 200
 
 
 class NoTextLayerError(ValueError):
@@ -34,13 +39,22 @@ def parse_docx(path: Path) -> list[tuple[int, str]]:
 
 
 def should_fallback_to_unstructured(pages: list[tuple[int, str]]) -> bool:
+    """Trigger the heavier `unstructured` parser only when pypdf clearly
+    failed to extract anything useful.
+
+    Earlier this fell back on the plan's per-page heuristic (>30% empty
+    pages or <100 chars/page avg). That mis-fired on short legitimate PDFs
+    — a one-page receipt easily hits both thresholds — and broke prod
+    where unstructured isn't installed. Now we fall back only when the
+    document is essentially text-free across all pages.
+    """
     if not pages:
         return True
-    empty = sum(1 for _, t in pages if not t.strip())
-    if empty / len(pages) > EMPTY_PAGE_RATIO:
+    total_chars = sum(len(t.strip()) for _, t in pages)
+    if total_chars < MIN_TOTAL_CHARS_TO_TRUST_PYPDF:
         return True
-    avg = sum(len(t) for _, t in pages) / len(pages)
-    if avg < MIN_CHARS_PER_PAGE:
+    empty = sum(1 for _, t in pages if not t.strip())
+    if empty / len(pages) > EMPTY_PAGE_RATIO and total_chars < MIN_CHARS_PER_PAGE * len(pages):
         return True
     return False
 

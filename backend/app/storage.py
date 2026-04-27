@@ -1,8 +1,33 @@
 import os
+import re
 import uuid
 from pathlib import Path
 
 from app.config import get_settings
+
+# Permissive whitelist for the on-disk filename. Anything outside this set —
+# path separators, NUL, control chars, exotic punctuation — gets stripped.
+# We keep dots (extensions), spaces, dashes, underscores, parentheses, and
+# alphanumerics. Result is collapsed and trimmed.
+_SAFE_FILENAME_RE = re.compile(r"[^A-Za-z0-9._\-() ]+")
+_MAX_BASENAME_LENGTH = 200
+
+
+def safe_basename(filename: str) -> str:
+    """Return a filename safe to use as a path component.
+
+    Strips directories (defends against `../etc/passwd.pdf`-style traversal),
+    NUL and control bytes, and any character outside a permissive whitelist.
+    Raises ValueError if the resulting name is empty or has no extension —
+    callers should catch and return 400.
+    """
+    # Path(...).name strips any directory components from forward- or
+    # back-slash-style paths (Windows clients send backslashes).
+    base = Path(filename.replace("\\", "/")).name
+    base = _SAFE_FILENAME_RE.sub("", base).strip(". ")
+    if not base or "." not in base:
+        raise ValueError("filename is empty or has no extension after sanitization")
+    return base[:_MAX_BASENAME_LENGTH]
 
 
 def _base_dir() -> Path:

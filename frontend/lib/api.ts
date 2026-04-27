@@ -223,8 +223,23 @@ export async function getChunk(chunkId: number): Promise<ChunkContent> {
   return res.json();
 }
 
-export async function getDocumentFile(documentId: number): Promise<ArrayBuffer> {
-  const res = await apiFetch(`/documents/${documentId}/file`);
-  await throwIfBad(res, "load document file");
-  return res.arrayBuffer();
+// Cache PDF ArrayBuffers per document so clicking multiple citations on
+// the same document doesn't re-download the whole file each time.
+// Stores the in-flight Promise rather than the resolved buffer so
+// concurrent calls during the first fetch share one network request.
+const _documentFileCache = new Map<number, Promise<ArrayBuffer>>();
+
+export function getDocumentFile(documentId: number): Promise<ArrayBuffer> {
+  const cached = _documentFileCache.get(documentId);
+  if (cached) return cached;
+  const promise = (async () => {
+    const res = await apiFetch(`/documents/${documentId}/file`);
+    await throwIfBad(res, "load document file");
+    return res.arrayBuffer();
+  })();
+  _documentFileCache.set(documentId, promise);
+  // Drop the cache entry on failure so a retry can fetch again instead
+  // of permanently caching the rejected promise.
+  promise.catch(() => _documentFileCache.delete(documentId));
+  return promise;
 }

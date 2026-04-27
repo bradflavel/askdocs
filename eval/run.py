@@ -78,6 +78,15 @@ async def ensure_fixture_ingested(user_id: int, fixture_path: Path) -> int:
         if existing and existing.status == "ready":
             print(f"[eval] fixture already ingested (document_id={existing.id})")
             return existing.id
+        if existing:
+            # Half-ingested row from a previous failed/interrupted run.
+            # Drop it so the insert below doesn't trip the
+            # (user_id, file_hash) unique constraint.
+            print(
+                f"[eval] removing existing non-ready fixture row "
+                f"(document_id={existing.id}, status={existing.status})"
+            )
+            await s.delete(existing)
 
     print(f"[eval] ingesting {fixture_path} ...")
     pages = parse_document(fixture_path)
