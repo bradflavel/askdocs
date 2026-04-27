@@ -32,11 +32,13 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _reject_placeholder_jwt_secret_outside_dev(self) -> "Settings":
-        if self.env != "dev" and self.jwt_secret == _PLACEHOLDER_JWT_SECRET:
+        if self.env == "dev":
+            return self
+        if not self.jwt_secret.strip() or self.jwt_secret == _PLACEHOLDER_JWT_SECRET:
             raise ValueError(
-                "JWT_SECRET is the placeholder value; refusing to start with "
-                "ENV != 'dev'. Set JWT_SECRET to a strong random value "
-                "(e.g. `openssl rand -base64 48`)."
+                "JWT_SECRET is empty or the placeholder value; refusing to "
+                "start with ENV != 'dev'. Set JWT_SECRET to a strong random "
+                "value (e.g. `openssl rand -base64 48`)."
             )
         return self
 

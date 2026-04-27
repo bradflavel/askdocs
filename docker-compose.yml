@@ -21,7 +21,7 @@ services:
       target: dev
     environment:
       DATABASE_URL: postgresql+asyncpg://askdocs:askdocs@postgres:5432/askdocs
-      JWT_SECRET: ${JWT_SECRET:-change-me}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-env}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       STORAGE_DIR: /storage
       CORS_ORIGINS: '["http://localhost:3000"]'
