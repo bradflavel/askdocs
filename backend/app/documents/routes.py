@@ -24,7 +24,13 @@ from app.db import get_session
 from app.documents.ingest import process_document
 from app.documents.schemas import DocumentOut, UploadResponse
 from app.models import Document
-from app.storage import document_dir, final_document_path, move_to_final, temp_upload_path
+from app.storage import (
+    document_dir,
+    final_document_path,
+    move_to_final,
+    safe_basename,
+    temp_upload_path,
+)
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -41,7 +47,14 @@ async def upload_document(
 ) -> UploadResponse:
     settings = get_settings()
 
-    filename = file.filename or ""
+    raw_filename = file.filename or ""
+    try:
+        filename = safe_basename(raw_filename)
+    except ValueError as e:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            detail="invalid filename",
+        ) from e
     suffix = Path(filename).suffix.lower()
     if suffix not in ALLOWED_SUFFIXES:
         raise HTTPException(
