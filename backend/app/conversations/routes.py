@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.deps import CurrentUser
@@ -90,6 +90,7 @@ async def rename_conversation(
     if not title:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="title cannot be empty")
     conv.title = title
+    conv.updated_at = func.now()
     await session.commit()
     await session.refresh(conv)
     return ConversationOut.model_validate(conv)
